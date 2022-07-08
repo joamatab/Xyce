@@ -86,20 +86,12 @@ class BaseDevice(object):
         except:
             assert False, "getArraySizes(...) called before \
                     processTotalVars(...)"
-        size_dict = {}
-        # 'F' must have size num_vars
-        size_dict['F']=[num_vars,]
-        # 'Q' can have size num_vars or 0
-        size_dict['Q']=[num_vars,]
-        # 'B' can have size num_vars or 0
-        size_dict['B']=[num_vars,]
-
         # limiting variables will have same size 
         # as variable they shadow
 
         # gradients of variables F and Q (dFdX and dQdX) will have 
         # shape (size F x size F) and (size Q x size Q), respectively
-        return size_dict
+        return {'F': [num_vars], 'Q': [num_vars], 'B': [num_vars]}
     
     # tell Xyce-PyMi Jacobian stamp (nonzeros per row) size
     # if not overridden, a dense Jacobian will be created

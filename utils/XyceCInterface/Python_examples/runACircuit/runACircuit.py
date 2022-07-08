@@ -13,7 +13,7 @@ xyceObj = xyce_interface(libdir=libDirectory)
 print( xyceObj )
 
 argv= ['runACircuit.cir']
-print( "calling initialize with netlist %s" % argv[0] )
+print(f"calling initialize with netlist {argv[0]}")
 
 result = xyceObj.initialize(argv)
 print( "return value from initialize is %d" % result )

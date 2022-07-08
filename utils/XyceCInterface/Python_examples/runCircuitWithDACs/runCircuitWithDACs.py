@@ -14,7 +14,7 @@ xyceObj = xyce_interface(libdir=libDirectory)
 print( xyceObj )
 
 argv= ['runCircuitWithDACs.cir']
-print( "calling initialize with netlist %s" % argv[0] )
+print(f"calling initialize with netlist {argv[0]}")
 
 result = xyceObj.initialize(argv)
 print( "return value from initialize is %d" % result )
@@ -41,7 +41,7 @@ timeArrayBase = [ 0.0, 0.1e-4, 0.2e-4, 0.4e-4, 0.5e-4, 0.7e-4, 0.8e-4, 1.0e-4, 1
 timeArray = timeArrayBase[:]
 voltageArray= [ 0.0, 0.0,    3.0,    3.0,    0.0,    0.0,    3.0,    3.0,    0.0    ] 
 
-steps = range(0,10)
+steps = range(10)
 total_sim_time = 20.0e-4
 for i in steps:
   result = xyceObj.updateTimeVoltagePairs( DACnames[0], timeArray, voltageArray )
@@ -50,16 +50,16 @@ for i in steps:
   actual_time = 0.0
   (result, actual_time) = xyceObj.simulateUntil( requested_time )
   print( "simulateUntil status = %d and actual_time = %f" % (result, actual_time) )
-  
+
   # get some result from the ciruit
   (result,value) = xyceObj.obtainResponse('YMEMRISTORRES')
   print( "return value from obtainResponse = %d" % result)
   print( "R= %f " % value )
 
-  # update timeArray to repeat pulse 
-  for j in range(0,len(timeArray)):
+  # update timeArray to repeat pulse
+  for j in range(len(timeArray)):
     timeArray[j] = timeArrayBase[j] + requested_time
-  
+
 print( "calling close")
 xyceObj.close()
 

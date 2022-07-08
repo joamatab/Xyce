@@ -94,10 +94,10 @@ def getXyceData(file,verbose=False):
 
     numentries = len(tags)
     if verbose:
-      print ("Read file: " + file)
+      print(f"Read file: {file}")
       print ("Found columns:  ", end=' ')
       print (tags)
-      print ("Found " + str(numlines) + " lines of data")
+      print(f"Found {str(numlines)} lines of data")
     data = numpy.zeros((numlines+1,numentries),'double')
     if verbose:
       print ("Reading lines: ",)
@@ -107,10 +107,10 @@ def getXyceData(file,verbose=False):
       s = input[i].split()
       if s[0] != 'End':  # if this is the final line text string, skip it.
         if len(s) != numentries:
-          print ("Error : " + file + ":" + str(i+1))
+          print(f"Error : {file}:{str(i+1)}")
           print ("Number of columns read is not equal to number of columns in header.")
-          print ("numentries = " + str(numentries))
-          print ("len(s) = " + str(len(s)))
+          print(f"numentries = {numentries}")
+          print(f"len(s) = {len(s)}")
           print (s)
           sys.exit(1)
         data[i-1,:] = [float(j) for j in s]
@@ -122,10 +122,10 @@ def getXyceData(file,verbose=False):
     if verbose:
       print ("\n")
   else:
-    print ("Error, file, " + file + " does not exist")
+    print(f"Error, file, {file} does not exist")
     print (getXyceData.__doc__)
     sys.exit(1)
-  print ("stepRanges = %s" %stepRanges)
+  print(f"stepRanges = {stepRanges}")
   return (tags,data,stepRanges,finished)
 
 
@@ -165,10 +165,10 @@ def getXyceCSVData(file,verbose=False):
 
     numentries = len(tags)
     if verbose:
-      print ("Read file: " + file)
+      print(f"Read file: {file}")
       print ("Found columns:  ",end=' ')
       print (tags)
-      print ("Found " + str(numlines) + " lines of data")
+      print(f"Found {str(numlines)} lines of data")
     data = numpy.zeros((numlines+1,numentries),'double')
     if verbose:
       print ("Reading lines: ",end=' ')
@@ -178,10 +178,10 @@ def getXyceCSVData(file,verbose=False):
       s = input[i].split(',')
       if s[0] != 'End':  # if this is the final line text string, skip it.
         if len(s) != numentries:
-          print ("Error : " + file + ":" + str(i+1))
+          print(f"Error : {file}:{str(i+1)}")
           print ("Number of columns read is not equal to number of columns in header.")
-          print ("numentries = " + str(numentries))
-          print ("len(s) = " + str(len(s)))
+          print(f"numentries = {numentries}")
+          print(f"len(s) = {len(s)}")
           print (s)
           sys.exit(1)
         data[i-1,:] = [float(j) for j in s]
@@ -193,10 +193,10 @@ def getXyceCSVData(file,verbose=False):
     if verbose:
       print ("\n")
   else:
-    print ("Error, file, " + file + " does not exist")
+    print(f"Error, file, {file} does not exist")
     print (getXyceCSVData.__doc__)
     sys.exit(1)
-  print ("stepRanges = %s" %stepRanges)
+  print(f"stepRanges = {stepRanges}")
   return (tags,data,stepRanges,finished)
 
 #-------------------------------------------------------------------------------
@@ -237,17 +237,17 @@ def getXyceRawData(file,verbose=False):
     # retrieve circuit title
     line = input[0]
     fields = line.split()
-    title = line[len(fields[0])+1:len(line)-1]
- 
+    title = line[len(fields[0])+1:-1]
+
     # retrieve date
     line = input[1]
     fields = line.split()
-    date = line[len(fields[0])+1:len(line)-1]
+    date = line[len(fields[0])+1:-1]
 
     # retrieve plotname
     line = input[2]
     fields = line.split()
-    plotname = line[len(fields[0])+1:len(line)-1]
+    plotname = line[len(fields[0])+1:-1]
 
     # retrieve number of variables
     line = input[4]
@@ -262,12 +262,9 @@ def getXyceRawData(file,verbose=False):
     # inspect line 7 to determine if version line is present
     line = input[6]
     fields = line.split()
-    versionLineOffset=0
-    if( fields[0] == "Version:" ):
-      versionLineOffset=1
-
-    # retrieve labels 
-    for i in range( 0, numVars ):
+    versionLineOffset = 1 if ( fields[0] == "Version:" ) else 0
+    # retrieve labels
+    for i in range(numVars):
       # variable names begin on line 7
       line = input[7 + versionLineOffset + i]                 
 
@@ -282,7 +279,7 @@ def getXyceRawData(file,verbose=False):
     fields = line.split()
     isBinary = fields[0] == "Binary:"
 
-    
+
     # process data points ------------------
 
     # verbose = True   # FIXME  DEBUGGING
@@ -300,17 +297,17 @@ def getXyceRawData(file,verbose=False):
       f = open( file, 'rb' )  
 
       # advance past the header
-      for i in range( 0, 8 + versionLineOffset + numVars ):
+      for _ in range(8 + versionLineOffset + numVars):
         input = f.readline()
 
       if verbose:
         print ("Data starts at file position:  ", f.tell())
         print ("Reading binary values and storing as: ")
-      
+
       # read from file
       vals = array.array( 'd' )
       vals.fromfile( f, ( numPoints * numVars ) )
-    
+
       # swap byte order; needed on ppc 
       if sys.byteorder == "big":
         print ("WARNING:  changing byte order to big-endian")
@@ -334,7 +331,7 @@ def getXyceRawData(file,verbose=False):
       data = numpy.zeros( ( numPoints, numVars ), 'double' )
 
       # store the values
-      for i in range( 0, numPoints ):
+      for i in range(numPoints):
         if verbose:
           print (i,end=' ')
         # processing "pointNumber\ttime\n" from each block
@@ -342,13 +339,13 @@ def getXyceRawData(file,verbose=False):
         data[i,0] = float( s[1] );
         if verbose:
           print (data[i,0],end=' ')
-     
+
         for j in range( 1, numVars ):
           s = input[currentLine + j].split()
           data[i,j] = float( s[0] )
           if verbose: 
             print (float( s[0] ),end=' ')
-   
+
         # advance to next data block
         currentLine = currentLine + numVars + 1 
 
@@ -360,9 +357,8 @@ def getXyceRawData(file,verbose=False):
     f.close()
     finished = 1
 
-  # failed reading input file
   else:
-    print ("Error, file, " + file + " does not exist")
+    print(f"Error, file, {file} does not exist")
     print (getXyceRawData.__doc__)
     sys.exit(1)
 
@@ -393,9 +389,7 @@ def getXyceTecplotData(file,verbose=False):
     fields = line.split()
     while match[0] != None:
       fields = line.split()
-      if fields[0] != "DATASETAUXDATA" and \
-         fields[0] != "ZONE" and \
-         fields[0] != "AUXDATA":
+      if fields[0] not in ["DATASETAUXDATA", "ZONE", "AUXDATA"]:
         beg = match[0]
         end = match[1]
         tag = line[beg+1:end-1]
@@ -426,12 +420,12 @@ def getXyceTecplotData(file,verbose=False):
 
     numentries = len(tags)
     if verbose:
-      print ("Read file: " + file)
+      print(f"Read file: {file}")
       print ("Found variables:  ",end=' ')
       print (tags)
-      print ("linestart = %s" %linestart)
-      print ("Found " + str(numlines) + " lines of data" )
-      print ("Found " + str(numentries) + " different variables" )
+      print(f"linestart = {linestart}")
+      print(f"Found {str(numlines)} lines of data")
+      print(f"Found {numentries} different variables")
 
     data = numpy.zeros((numlines,numentries),'double')
 
@@ -443,32 +437,30 @@ def getXyceTecplotData(file,verbose=False):
       if verbose:
         print (".",end=' ')
       s = input[i].split()
-      if s[0] != 'End' and \
-         s[0] != 'ZONE' and \
-         s[0] != 'AUXDATA':  # if this is not a data line, skip it.
+      if s[0] not in ['End', 'ZONE', 'AUXDATA']:  # if this is not a data line, skip it.
         if len(s) != numentries:
-          print ("Error: " + file + ":" + str(i+1))
+          print(f"Error: {file}:{str(i+1)}")
           print ("Number of columns read is not equal to number of columns in header.")
-          print ("numentries = " + str(numentries))
-          print ("len(s) = " + str(len(s)))
+          print(f"numentries = {numentries}")
+          print(f"len(s) = {len(s)}")
           print (i,s)
           sys.exit(1)
         data[dataIndex,:] = [float(j) for j in s]
         dataIndex += 1
 
-      if s[0] == 'ZONE' or s[0] == 'End':
+      if s[0] in ['ZONE', 'End']:
         stepRanges.append(dataIndex)
-         
+
     stepRanges.append(dataIndex)
 
     if verbose:
       print ("\n")
   else:
-    print ("Error, file, " + file + " does not exist")
+    print(f"Error, file, {file} does not exist")
     print (getXyceTecplotData.__doc__)
     sys.exit(1)
 
-  print ("stepRanges = %s" %stepRanges)
+  print(f"stepRanges = {stepRanges}")
   return (tags,data,stepRanges,title,finished)
 
 #-------------------------------------------------------------------------------

@@ -11,31 +11,24 @@ class xyce_interface:
   def __init__(self,libdir="",name="",cmdargs=None):
     try:
       libName=find_library('xycecinterface')
-      if( libName != None ):
+      if libName is None:
+        # library wasn't found on normal system paths so 
+        # try appending libdir to the name
+        libName = (f"{libdir}/libxycecinterface.dylib"
+                   if sys.platform.startswith('darwin') else
+                   f"{libdir}/libxycecinterface.so")
+        print(f"Trying to load {libName}")
+        self.lib = CDLL(libName,RTLD_GLOBAL)
+      else:
         self.lib = cdll.LoadLibrary(libName)
         #self.lib = CDLL(libName)
         print( self.lib )
-      else:
-        # library wasn't found on normal system paths so 
-        # try appending libdir to the name
-        if sys.platform.startswith('darwin'):
-          libName=libdir + "/" + "libxycecinterface.dylib"
-          print("Trying to load " + libName )
-          self.lib = CDLL(libName,RTLD_GLOBAL)
-        else:
-          libName=libdir + "/" + "libxycecinterface.so"
-          print("Trying to load " + libName )
-          self.lib = CDLL(libName,RTLD_GLOBAL)
     except:
       type,value,tb = sys.exc_info()
       traceback.print_exception(type,value,tb)
       raise OSError("Could not load libxyce dynamic library")
-    if cmdargs:
-      self.xycePtr = c_void_p()
-      self.lib.xyce_open(byref(self.xycePtr))
-    else:
-      self.xycePtr = c_void_p()
-      self.lib.xyce_open(byref(self.xycePtr))
+    self.xycePtr = c_void_p()
+    self.lib.xyce_open(byref(self.xycePtr))
 
   def __del__(self):
     if self.xycePtr: 
@@ -53,15 +46,13 @@ class xyce_interface:
     # allocate new C array 
     cargs = (c_char_p*narg)()
     # initialize the array
-    for i in range(0,narg):
+    for i in range(narg):
       cargs[i] = args[i].encode('utf-8')
     print( cargs )
-    status = self.lib.xyce_initialize( byref(self.xycePtr), narg, cargs )
-    return status
+    return self.lib.xyce_initialize( byref(self.xycePtr), narg, cargs )
 
   def runSimulation( self ):
-    status = self.lib.xyce_runSimulation( byref(self.xycePtr) )
-    return status
+    return self.lib.xyce_runSimulation( byref(self.xycePtr) )
 
   def simulateUntil( self, requestedTime ):
     csimTime = c_double(0)
@@ -98,12 +89,15 @@ class xyce_interface:
     if status != 1:
       return (status, names)
 
-    deviceNameBuff = [create_string_buffer(cMaxDeviceNameLength.value) for i in range(cNumDeviceNames.value)]
+    deviceNameBuff = [
+        create_string_buffer(cMaxDeviceNameLength.value)
+        for _ in range(cNumDeviceNames.value)
+    ]
     cDeviceNameArray = (c_char_p*cNumDeviceNames.value)(*map(addressof, deviceNameBuff))
     #print( cDeviceNameArray )
     status = self.lib.xyce_getDeviceNames( byref(self.xycePtr), cBaseName, byref(cNumDeviceNames), cDeviceNameArray)
     #print( cNumDeviceNames.value, cDeviceNameArray[0],  cDeviceNameArray[1])
-    for i in range(0, cNumDeviceNames.value):
+    for i in range(cNumDeviceNames.value):
       names.insert(i, str(cDeviceNameArray[i].decode('utf-8')) )
     return (status, names)
 
@@ -117,10 +111,13 @@ class xyce_interface:
     if status != 1:
       return (status, names)
 
-    deviceNameBuff = [create_string_buffer(cMaxDeviceNameLength.value) for i in range(cNumDeviceNames.value)]
+    deviceNameBuff = [
+        create_string_buffer(cMaxDeviceNameLength.value)
+        for _ in range(cNumDeviceNames.value)
+    ]
     cDeviceNameArray = (c_char_p*cNumDeviceNames.value)(*map(addressof, deviceNameBuff))
     status = self.lib.xyce_getAllDeviceNames( byref(self.xycePtr), byref(cNumDeviceNames), cDeviceNameArray)
-    for i in range(0, cNumDeviceNames.value):
+    for i in range(cNumDeviceNames.value):
       names.insert(i, str(cDeviceNameArray[i].decode('utf-8')) )
     return (status, names)
 
@@ -136,20 +133,21 @@ class xyce_interface:
     if status != 1:
       return (status, DACnames)
 
-    deviceNameBuff = [create_string_buffer(cMaxDeviceNameLength.value) for i in range(cNumDeviceNames.value)]
+    deviceNameBuff = [
+        create_string_buffer(cMaxDeviceNameLength.value)
+        for _ in range(cNumDeviceNames.value)
+    ]
     cDeviceNameArray = (c_char_p*cNumDeviceNames.value)(*map(addressof, deviceNameBuff))
     #print( cDeviceNameArray )
     status = self.lib.xyce_getDACDeviceNames( byref(self.xycePtr), byref(cNumDeviceNames), cDeviceNameArray)
     #print( cNumDeviceNames.value, cDeviceNameArray[0],  cDeviceNameArray[1])
-    for i in range(0, cNumDeviceNames.value):
+    for i in range(cNumDeviceNames.value):
       DACnames.insert(i, str(cDeviceNameArray[i].decode('utf-8')) )
     return (status, DACnames)
-    return status
 
   def checkDeviceParamName(self , paramName):
     cvarName = c_char_p(paramName.encode('utf-8'))
-    status = self.lib.xyce_checkDeviceParamName( byref(self.xycePtr), cvarName )
-    return status
+    return self.lib.xyce_checkDeviceParamName( byref(self.xycePtr), cvarName )
 
   def getDeviceParamVal(self, paramName):
     cparamName = c_char_p(paramName.encode('utf-8'))
@@ -176,7 +174,7 @@ class xyce_interface:
     cGIDs = (c_int*cNumAdjNodes.value)()
     status = self.lib.xyce_getAdjGIDsForDevice( byref(self.xycePtr), cdeviceName, byref(cNumAdjNodes), byref(cGIDs) )
 
-    for i in range(0,cNumAdjNodes.value):
+    for i in range(cNumAdjNodes.value):
       GIDs.insert(i,cGIDs[i])
     return (status, GIDs)
 
@@ -197,7 +195,10 @@ class xyce_interface:
     if status != 1:
       return (status, ADCnames, widths, resistances, upperVLimits, lowerVLimits, settlingTimes)
 
-    deviceNameBuff = [create_string_buffer(cMaxDeviceNameLength.value) for i in range(cNumDeviceNames.value)]
+    deviceNameBuff = [
+        create_string_buffer(cMaxDeviceNameLength.value)
+        for _ in range(cNumDeviceNames.value)
+    ]
     cADCNames = (c_char_p*cNumDeviceNames.value)(*map(addressof, deviceNameBuff))
     cWidths = (c_int*cNumDeviceNames.value)()
     cResistances = (c_double*cNumDeviceNames.value)()
@@ -210,7 +211,7 @@ class xyce_interface:
                                       byref(cUpperVLimits), byref(cLowerVLimits),
                                       byref(cSettlingTimes) )
 
-    for i in range(0, cNumDeviceNames.value):
+    for i in range(cNumDeviceNames.value):
       ADCnames.insert(i,str(cADCNames[i].decode('utf-8')))
       widths.insert(i,cWidths[i])
       resistances.insert(i,cResistances[i])
@@ -230,13 +231,17 @@ class xyce_interface:
     cTimeArray = (c_double*len(time))(*time)
     cVoltageArray = (c_double*len(time))(*voltage)
 
-    status = self.lib.xyce_updateTimeVoltagePairs( byref(self.xycePtr), cBaseName, cNumPts, byref(cTimeArray), byref(cVoltageArray) )
-    return status
+    return self.lib.xyce_updateTimeVoltagePairs(
+        byref(self.xycePtr),
+        cBaseName,
+        cNumPts,
+        byref(cTimeArray),
+        byref(cVoltageArray),
+    )
 
   def checkResponseVarName(self , varName):
     cvarName = c_char_p(varName.encode('utf-8'))
-    status = self.lib.xyce_checkResponseVar( byref(self.xycePtr), cvarName )
-    return status
+    return self.lib.xyce_checkResponseVar( byref(self.xycePtr), cvarName )
 
   def obtainResponse(self, varName):
     cvarName = c_char_p(varName.encode('utf-8'))
@@ -253,10 +258,12 @@ class xyce_interface:
   def getTimeVoltagePairsADC( self, maxNumDevices=1000, maxDeviceNameLength=1000, maxNumTimeVoltagePairs=1000 ):
     cNumADCnames = c_int(0)
     cNumPoints = c_int(0)
-    
-    ADCDeviceNameBuff = [create_string_buffer(maxDeviceNameLength) for i in range(maxNumDevices)]
+
+    ADCDeviceNameBuff = [
+        create_string_buffer(maxDeviceNameLength) for _ in range(maxNumDevices)
+    ]
     cADCDeviceNameArray = (c_char_p*maxNumDevices)(*map(addressof, ADCDeviceNameBuff))
-    
+
     #make the two double** arrays
     double_ctime = POINTER(c_double)
     inner_ctime_array = (c_double * maxNumTimeVoltagePairs)
@@ -269,7 +276,7 @@ class xyce_interface:
     cVoltageArray = (double_cvoltage * maxNumDevices) ()
     for i in range(maxNumDevices):
        cVoltageArray[i] = inner_cvoltage_array()
-    
+
     status = self.lib.xyce_getTimeVoltagePairsADC( byref(self.xycePtr), byref(cNumADCnames), cADCDeviceNameArray, byref(cNumPoints), byref(cTimeArray), byref(cVoltageArray) )
 
     # make the integer return values
@@ -279,7 +286,7 @@ class xyce_interface:
     # make and populate the arrays that will be used in
     # the return statement
     ADCnames = []
-    for i in range(0, numADCnames):
+    for i in range(numADCnames):
       ADCnames.insert(i, str(cADCDeviceNameArray[i].decode('utf-8')) ) 
 
     # make the returned timeArray
@@ -310,13 +317,15 @@ class xyce_interface:
 
   def getTimeVoltagePairsADCLimitData( self, maxNumDevices=1000, maxDeviceNameLength=1000, maxNumTimeVoltagePairs=1000 ):
     cNumADCnames = c_int(0)
-    
-    ADCDeviceNameBuff = [create_string_buffer(maxDeviceNameLength) for i in range(maxNumDevices)]
+
+    ADCDeviceNameBuff = [
+        create_string_buffer(maxDeviceNameLength) for _ in range(maxNumDevices)
+    ]
     cADCDeviceNameArray = (c_char_p*maxNumDevices)(*map(addressof, ADCDeviceNameBuff))
-    
+
     # make an int array for the number of points per ADC 
     cNumPointsArray = (c_int * maxNumDevices)()
-    
+
     #make the two double** arrays
     double_ctime = POINTER(c_double)
     inner_ctime_array = (c_double * maxNumTimeVoltagePairs)
@@ -329,7 +338,7 @@ class xyce_interface:
     cVoltageArray = (double_cvoltage * maxNumDevices) ()
     for i in range(maxNumDevices):
        cVoltageArray[i] = inner_cvoltage_array()
-    
+
     #int xyce_getTimeVoltagePairsADCLimitData( void** ptr, const int maxNumADCnames, const int maxNameLength, const int maxNumPoints,
     #     int * numADCnames, char ** ADCnamesArray, int * numPointsArray, double ** timeArray, double ** voltageArray );
 
@@ -339,18 +348,18 @@ class xyce_interface:
 
     # make the integer return values
     numADCnames = (cNumADCnames.value)
-    
+
     # make and populate the arrays that will be used in
     # the return statement
     ADCnames = []
-    for i in range(0, numADCnames):
+    for i in range(numADCnames):
       ADCnames.insert(i, str(cADCDeviceNameArray[i].decode('utf-8')) ) 
 
     # number of datapoints per ADC 
     numPointsArray = []
-    for i in range(0, numADCnames):
+    for i in range(numADCnames):
       numPointsArray.insert(i, cNumPointsArray[i])
-      
+
     # make the returned timeArray
     double_time = POINTER(c_double)
     timeArray = (double_time * numADCnames) ()
@@ -380,8 +389,10 @@ class xyce_interface:
   def getTimeStatePairsADC( self, maxNumDevices=1000, maxDeviceNameLength=1000, maxNumTimeStatePairs=1000 ):
     cNumADCnames = c_int(0)
     cNumPoints = c_int(0)
-    
-    ADCDeviceNameBuff = [create_string_buffer(maxDeviceNameLength) for i in range(maxNumDevices)]
+
+    ADCDeviceNameBuff = [
+        create_string_buffer(maxDeviceNameLength) for _ in range(maxNumDevices)
+    ]
     cADCDeviceNameArray = (c_char_p*maxNumDevices)(*map(addressof, ADCDeviceNameBuff))
 
     #make the double** and int** arrays
@@ -406,7 +417,7 @@ class xyce_interface:
     # make and populate the arrays that will be used in
     # the return statement
     ADCnames = []
-    for i in range(0, numADCnames):
+    for i in range(numADCnames):
       ADCnames.insert(i, cADCDeviceNameArray[i] ) 
 
     # make the returned timeArray
@@ -438,13 +449,15 @@ class xyce_interface:
 
   def getTimeStatePairsADCLimitData( self, maxNumDevices=1000, maxDeviceNameLength=1000, maxNumTimeStatePairs=1000 ):
     cNumADCnames = c_int(0)
-    
-    ADCDeviceNameBuff = [create_string_buffer(maxDeviceNameLength) for i in range(maxNumDevices)]
+
+    ADCDeviceNameBuff = [
+        create_string_buffer(maxDeviceNameLength) for _ in range(maxNumDevices)
+    ]
     cADCDeviceNameArray = (c_char_p*maxNumDevices)(*map(addressof, ADCDeviceNameBuff))
-    
+
     # make an int array for the number of points per ADC 
     cNumPointsArray = (c_int * maxNumDevices)()
-    
+
     #make the two double** arrays
     double_ctime = POINTER(c_double)
     inner_ctime_array = (c_double * maxNumTimeStatePairs)
@@ -457,7 +470,7 @@ class xyce_interface:
     cStateArray = (int_cstate * maxNumDevices) ()
     for i in range(maxNumDevices):
        cStateArray[i] = inner_cstate_array()
-    
+
     #int xyce_getTimeVoltagePairsADCLimitData( void** ptr, const int maxNumADCnames, const int maxNameLength, const int maxNumPoints,
     #     int * numADCnames, char ** ADCnamesArray, int * numPointsArray, double ** timeArray, double ** stateArray );
 
@@ -467,18 +480,18 @@ class xyce_interface:
 
     # make the integer return values
     numADCnames = (cNumADCnames.value)
-    
+
     # make and populate the arrays that will be used in
     # the return statement
     ADCnames = []
-    for i in range(0, numADCnames):
+    for i in range(numADCnames):
       ADCnames.insert(i, str(cADCDeviceNameArray[i].decode('utf-8')) ) 
 
     # number of datapoints per ADC 
     numPointsArray = []
-    for i in range(0, numADCnames):
+    for i in range(numADCnames):
       numPointsArray.insert(i, cNumPointsArray[i])
-      
+
     # make the returned timeArray
     double_time = POINTER(c_double)
     timeArray = (double_time * numADCnames) ()
@@ -513,20 +526,20 @@ class xyce_interface:
       return -1
     nADCs = len(ADCnames)
     cADCnames = (c_char_p*nADCs)()
-    for i in range(0,nADCs):
+    for i in range(nADCs):
       cADCnames[i] = str(ADCnames[i]).encode('utf-8')
 
     cADCwidths = (c_int*nADCs)()
-    for i in range(0,nADCs):
+    for i in range(nADCs):
       cADCwidths[i]=ADCwidths[i]
 
-    status = self.lib.xyce_setADCWidths( byref(self.xycePtr), nADCs, byref(cADCnames), byref(cADCwidths) )
-    return status
+    return self.lib.xyce_setADCWidths(
+        byref(self.xycePtr), nADCs, byref(cADCnames), byref(cADCwidths))
 
   def getADCWidths( self, ADCnames ):
     nADCs = len(ADCnames)
     cADCnames = (c_char_p*nADCs)()
-    for i in range(0,nADCs):
+    for i in range(nADCs):
       cADCnames[i] = str(ADCnames[i]).encode('utf-8')
 
     cADCwidths = (c_int*nADCs)()
@@ -534,7 +547,7 @@ class xyce_interface:
     status = self.lib.xyce_getADCWidths( byref(self.xycePtr), nADCs, byref(cADCnames), byref(cADCwidths) )
 
     width = []
-    for i in range(0,nADCs):
+    for i in range(nADCs):
       width.insert(i,cADCwidths[i])
     return (status,width)     
 
