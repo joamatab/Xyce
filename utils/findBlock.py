@@ -27,16 +27,25 @@ def findBlock(text, pos=0, delim="'"+'"'+"\(\[\{"):
     import re
     # Define delimeter regular expressions
     if quote1Delimeter:
-      quote1RE = re.compile("([" + quote1Delimeter + "])", re.M)
+        quote1RE = re.compile(f"([{quote1Delimeter}])", re.M)
     if quote2Delimeter:
-      quote2RE = re.compile("([" + quote2Delimeter + "])", re.M)
-    openRE   = re.compile("([" + openDelimeters  +
-                                 quote1Delimeter +
-                                 quote2Delimeter + "])", re.M)
-    anyRE    = re.compile("([" + openDelimeters  +
-                                 quote1Delimeter +
-                                 quote2Delimeter +
-                                 closeDelimeters + "])", re.M)
+        quote2RE = re.compile(f"([{quote2Delimeter}])", re.M)
+    openRE = re.compile(
+        (((f"([{openDelimeters}" + quote1Delimeter) + quote2Delimeter) + "])"),
+        re.M,
+    )
+
+    anyRE = re.compile(
+        (
+            (
+                ((f"([{openDelimeters}" + quote1Delimeter) + quote2Delimeter)
+                + closeDelimeters
+            )
+            + "])"
+        ),
+        re.M,
+    )
+
 
     # Find the first opening delimeter
     matchObject = openRE.search(text, pos)
@@ -76,19 +85,17 @@ def findBlock(text, pos=0, delim="'"+'"'+"\(\[\{"):
                 ((stack[-1] == "{"            ) and
                  (delimeter == "}"            ))   ):
                 stack.pop()                  # Remove the last element from the list
-                if len(stack) == 0:
+                if not stack:
                     return (start, pos)
 
-            # Process unmatched delimeter
-            else:
-                if (delimeter in openDelimeters  or
+            elif (delimeter in openDelimeters  or
                     delimeter == quote1Delimeter or
                     delimeter == quote2Delimeter   ):
-                    stack.append(delimeter)  # Add the delimeter to the stack
-                else:
-                    raise RuntimeError("findBlock: mismatched delimeters: " + \
-                          stack[-1] + " " + delimeter)
+                stack.append(delimeter)  # Add the delimeter to the stack
+            else:
+                raise RuntimeError("findBlock: mismatched delimeters: " + \
+                      stack[-1] + " " + delimeter)
 
     # We made it through all of text without finding the end of the block
-    raise RuntimeError("findBlock: open block: " + join(stack))
+    raise RuntimeError(f"findBlock: open block: {join(stack)}")
 

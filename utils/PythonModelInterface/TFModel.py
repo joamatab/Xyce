@@ -59,8 +59,8 @@ class TFModel(object):
                 if group.startswith("DATA_"):
                     DATA[group[len("DATA_"):]]=f[group][()]
         # get each * from DATA_* and make it a variable (i.e. DATA_ipn -> DATA.ipn)
-        globals().update({'DATA':DATA})
-        
+        globals()['DATA'] = DATA
+
         global calling_from_h5
         calling_from_h5 = True
 
@@ -92,10 +92,7 @@ class TFModel(object):
 
         customLayersClasses = dict([(name, cls) for name, cls in custom_layers_module.__dict__.items() if isinstance(cls, type)])
         customLossesClasses = dict([(name, cls) for name, cls in custom_losses_module.__dict__.items() if isinstance(cls, type)])
-        customObjects = {}
-        customObjects.update(customLayersClasses)
-        customObjects.update(customLossesClasses)
-
+        customObjects = customLayersClasses | customLossesClasses
         self.tf_model = keras.models.load_model(fname, custom_objects=customObjects, compile=True)
         self.sess = tf.compat.v1.keras.backend.get_session()
         self.loss = self.tf_model.output
@@ -135,10 +132,14 @@ class TFModel(object):
     def gradient(self, input_value, output_comp=0):
         #return 0
         (prediction, out) = self.eval_if_needed(input_value)
-        #out_val = self.transform.invertOutput(prediction[0][0], input_value)
-        if self.transform is not None:
-            deriv = self.transform.derivativeOfRawOutputWithRespectToRawInput(self.last_input_value, prediction[0][0], out[0][0][0], self.last_input_value)
-        else:
-            deriv = out[0][0][0]
-        return deriv
+        return (
+            self.transform.derivativeOfRawOutputWithRespectToRawInput(
+                self.last_input_value,
+                prediction[0][0],
+                out[0][0][0],
+                self.last_input_value,
+            )
+            if self.transform is not None
+            else out[0][0][0]
+        )
 

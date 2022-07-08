@@ -61,10 +61,10 @@ def getXyceData(file,verbose=False):
     tags = line0.split()
     numentries = len(tags)
     if verbose:
-      print ("Read file: " + file)
+      print(f"Read file: {file}")
       print ("Found columns:  ", end=' ')
       print (tags)
-      print ("Found " + str(numlines) + " lines of data" )
+      print(f"Found {str(numlines)} lines of data")
     data = numpy.zeros((numlines,numentries),'double')
     if verbose:
       print ("Reading lines: ",)
@@ -74,16 +74,16 @@ def getXyceData(file,verbose=False):
       s = input[i].split()
       if s[0] != 'End':  # if this is the final line text string, skip it.
         if len(s) != numentries:
-          print ("Error: " + file + ":" + str(i+1))
+          print(f"Error: {file}:{str(i+1)}")
           print ("Number of columns read is not equal to number of columns in header.")
-          print ("numentries = " + str(numentries))
-          print ("len(s) = " + str(len(s)))
+          print(f"numentries = {numentries}")
+          print(f"len(s) = {len(s)}")
           sys.exit(1)
         data[i-1,:] = [float(j) for j in s]
     if verbose:
       print ("\n")
   else:
-    print ("Error, file, " + file + " does not exist")
+    print(f"Error, file, {file} does not exist")
     print (getXyceData.__doc__)
     sys.exit(1)
   return (tags,data)
@@ -123,17 +123,15 @@ def plotXyceData(tags,data,file,verbose=False,figures=False,plotopts=[],showplot
   showplot    # call pylab.show() at end [default=True]
   """
   numentries = len(tags)
-  dosubplot=True
   if "INDEX" in tags[0].upper(): # This is to handle xyce_verify.pl plotfile output
     indep=1
     numfigs=len(tags)-2
   else:
     indep=0
     numfigs=len(tags)-1
-  if numentries > 6 or figures:
-    dosubplot=False
+  dosubplot = numentries <= 6 and not figures
   if verbose:
-    print ("Number of columns to plot = " + str(numfigs))
+    print(f"Number of columns to plot = {str(numfigs)}")
     if dosubplot:
       print ("Using subplots for plotting")
     else:
@@ -141,12 +139,11 @@ def plotXyceData(tags,data,file,verbose=False,figures=False,plotopts=[],showplot
   pylab.figure()
   for i in range(numfigs):
     if verbose:
-      print ("Plotting column " + str(i+1) + " = " + tags[i+indep+1])
+      print(f"Plotting column {str(i+1)} = {tags[i+indep+1]}")
     if dosubplot:
       pylab.subplot(numfigs, 1, i+1)
-    else:
-      if i > 0: 
-        pylab.figure()
+    elif i > 0: 
+      pylab.figure()
     listopts,dictopts = parsePlotOpts(plotopts,verbose)
     pylab.plot(data[:,indep],data[:,i+indep+1],*listopts,**dictopts)
     pylab.ylabel(tags[i+indep+1])

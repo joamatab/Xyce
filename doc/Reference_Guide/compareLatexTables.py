@@ -80,15 +80,17 @@ if __name__ == '__main__':
   for tablePair in tableList:
     oldTable = tablePair[0]
     newTable = os.path.join(newDirName, tablePair[1])
-    newTableText = newTable + ".text"
-    oldTableText = oldTable + ".text"
+    newTableText = f"{newTable}.text"
+    oldTableText = f"{oldTable}.text"
     if( os.path.isfile( oldTable ) ):
       command = "grep -e 'tt' " + oldTable + " > " + oldTableText 
       os.system(command)
     if( os.path.isfile( oldTable ) ):
       command = "grep -e 'tt' " + newTable + " > " + newTableText
       os.system(command)
-    diffResultsFileName = oldTable + "_diffResults.text"
+    diffResultsFileName = f"{oldTable}_diffResults.text"
+    diffCommand = f"diff -w {oldTableText} {newTableText} > {diffResultsFileName}"
+    diffResult = os.system( diffCommand )
     diffCommand = "diff -w " + oldTableText + " " + newTableText + " > " + diffResultsFileName
     diffResult = os.system( diffCommand )
     if( diffResult == 0 ):
@@ -97,8 +99,6 @@ if __name__ == '__main__':
       os.remove( diffResultsFileName )
       os.remove( oldTableText )
       os.remove( newTableText )
-    else:
-      print "Difference found between ", oldTable, " and ", newTable
       # we don't clean up old/new table text files in this case
      
 
